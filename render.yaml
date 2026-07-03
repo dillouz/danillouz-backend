@@ -22,4 +22,4 @@ services:
       - key: MAILERLITE_GROUP_ID
         value: "191708280833181522"
       - key: ALLOWED_ORIGIN
-        value: "https://join.danillouz.com"
+        value: "https://join.danillouz.com,https://join-danillouz.onrender.com"
