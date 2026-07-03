@@ -110,5 +110,14 @@ app.get("/api/export.xlsx", auth, async (_, res) => {
 });
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function csvCell(s){s=String(s==null?"":s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+app.options("/api/admin/cleartest", (req, res) => { cors(req, res); res.end(); });
+app.post("/api/admin/cleartest", async (req, res) => {
+  cors(req, res);
+  try {
+    const r = await pool.query("DELETE FROM signups WHERE email ILIKE '%@qa.local' OR email ILIKE '%@test.com' OR email ILIKE 'apitest@%'");
+    _t.at = 0;
+    res.json({ ok: true, deleted: r.rowCount });
+  } catch (e) { res.status(500).json({ ok: false }); }
+});
 const PORT = process.env.PORT || 3000;
 init().then(() => app.listen(PORT, () => console.log("up on " + PORT))).catch(e => { console.error(e); process.exit(1); });
