@@ -30,6 +30,7 @@ async function init() {
   await pool.query(`CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT)`);
   await pool.query(`INSERT INTO config(k,v) VALUES ('whatsapp',$1) ON CONFLICT (k) DO NOTHING`, ["https://chat.whatsapp.com/CdHEVsNeV4z2rWAPyS55oA"]);
   await pool.query(`INSERT INTO config(k,v) VALUES ('base_count','0') ON CONFLICT (k) DO NOTHING`);
+  await pool.query(`UPDATE config SET v='1452' WHERE k='base_count' AND v='0'`);  // one-time baseline = existing mailing list
 }
 async function getCfg(k, d) { const r = await pool.query("SELECT v FROM config WHERE k=$1", [k]); return r.rows[0] ? r.rows[0].v : d; }
 
