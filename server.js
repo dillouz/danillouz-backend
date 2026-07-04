@@ -50,24 +50,29 @@ const okEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 app.get("/healthz", (_, res) => res.send("ok"));
 app.options("/api/signup", (req, res) => { cors(req, res); res.end(); });
 
+const _dbg = [];
+function dbg(o){ _dbg.push(Object.assign({t:new Date().toISOString()},o)); if(_dbg.length>60) _dbg.shift(); }
+app.get("/api/debug/recent", (req, res) => { cors(req, res); res.json({ count:_dbg.length, recent: _dbg.slice(-40).reverse() }); });
+
 app.post("/api/signup", async (req, res) => {
   cors(req, res);
   try {
     const b = req.body || {};
-    if (b.website) return res.json({ ok: true });               // honeypot
-    if (limited(req.ip)) return res.status(429).json({ ok: false });
+    const hpFilled = !!(b.website && String(b.website).trim());   // honeypot: LOG ONLY now (autofill was silently blocking real signups)
+    if (limited(req.ip)) { dbg({r:"ratelimit", hp:hpFilled}); return res.status(429).json({ ok: false }); }
     const name = String(b.name || "").trim().slice(0, 80);
     const email = String(b.email || "").trim().toLowerCase().slice(0, 160);
     const phone = String(b.phone || "").trim().slice(0, 40);
     const source = String(b.source || "direct").slice(0, 40);
-    if (!okEmail(email)) return res.status(400).json({ ok: false });
-    await pool.query("INSERT INTO signups(name,email,phone,source) VALUES ($1,$2,$3,$4) ON CONFLICT (lower(email)) DO NOTHING", [name, email, phone, source]);
+    if (!okEmail(email)) { dbg({r:"bademail", hp:hpFilled, el:email.length}); return res.status(400).json({ ok: false }); }
+    const ins = await pool.query("INSERT INTO signups(name,email,phone,source) VALUES ($1,$2,$3,$4) ON CONFLICT (lower(email)) DO NOTHING", [name, email, phone, source]);
     _t.at = 0;
+    dbg({r: ins.rowCount ? "saved" : "duplicate", hp:hpFilled});
     if (ML_TOKEN) {
       fetch("https://connect.mailerlite.com/api/subscribers", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + ML_TOKEN }, body: JSON.stringify({ email, fields: { name, phone }, groups: [ML_GROUP] }) }).catch(() => {});
     }
     res.json({ ok: true, total: await total() });
-  } catch (e) { res.status(500).json({ ok: false }); }
+  } catch (e) { dbg({r:"error", e:String(e).slice(0,60)}); res.status(500).json({ ok: false }); }
 });
 app.get("/api/public", async (req, res) => {
   cors(req, res);
