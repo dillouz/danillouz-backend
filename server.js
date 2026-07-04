@@ -25,7 +25,7 @@ if (!ADMIN_PASSWORD || ADMIN_PASSWORD === "change-me-now") {
 
 async function init() {
   await pool.query(`CREATE TABLE IF NOT EXISTS signups (id SERIAL PRIMARY KEY, name TEXT, email TEXT, phone TEXT, source TEXT, created_at TIMESTAMPTZ DEFAULT now())`);
-  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS signups_email_uq ON signups (lower(email))`);
+  await pool.query(`DROP INDEX IF EXISTS signups_email_uq`);  // duplicates allowed (no barrier)
   await pool.query(`CREATE INDEX IF NOT EXISTS signups_created_idx ON signups (created_at DESC)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT)`);
   await pool.query(`INSERT INTO config(k,v) VALUES ('whatsapp',$1) ON CONFLICT (k) DO NOTHING`, ["https://chat.whatsapp.com/CdHEVsNeV4z2rWAPyS55oA"]);
@@ -64,8 +64,8 @@ app.post("/api/signup", async (req, res) => {
     const email = String(b.email || "").trim().toLowerCase().slice(0, 160);
     const phone = String(b.phone || "").trim().slice(0, 40);
     const source = String(b.source || "direct").slice(0, 40);
-    if (!okEmail(email)) { dbg({r:"bademail", hp:hpFilled, el:email.length}); return res.status(400).json({ ok: false }); }
-    const ins = await pool.query("INSERT INTO signups(name,email,phone,source) VALUES ($1,$2,$3,$4) ON CONFLICT (lower(email)) DO NOTHING", [name, email, phone, source]);
+    if (!email || email.indexOf("@") < 0) { dbg({r:"bademail", hp:hpFilled, el:email.length}); return res.status(400).json({ ok: false }); }
+    const ins = await pool.query("INSERT INTO signups(name,email,phone,source) VALUES ($1,$2,$3,$4)", [name, email, phone, source]);
     _t.at = 0;
     dbg({r: ins.rowCount ? "saved" : "duplicate", hp:hpFilled});
     if (ML_TOKEN) {
