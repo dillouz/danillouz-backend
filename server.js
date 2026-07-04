@@ -44,7 +44,7 @@ async function total() {
 function cors(req, res) { const o = req.headers.origin; if (o && ALLOWED.includes(o)) { res.set("Access-Control-Allow-Origin", o); res.set("Access-Control-Allow-Headers", "Content-Type"); } }
 
 const hits = new Map();
-function limited(ip) { const now = Date.now(); const a = (hits.get(ip) || []).filter(t => now - t < 60000); a.push(now); hits.set(ip, a); return a.length > 8; }
+function limited(ip) { const now = Date.now(); const a = (hits.get(ip) || []).filter(t => now - t < 60000); a.push(now); hits.set(ip, a); return a.length > 60; }
 const okEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 app.get("/healthz", (_, res) => res.send("ok"));
