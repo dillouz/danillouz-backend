@@ -120,7 +120,7 @@ app.options("/api/admin/cleartest", (req, res) => { cors(req, res); res.end(); }
 app.post("/api/admin/cleartest", async (req, res) => {
   cors(req, res);
   try {
-    const r = await pool.query("DELETE FROM signups WHERE email ILIKE '%@qa.local' OR email ILIKE '%@test.com' OR email ILIKE 'apitest@%'");
+    const r = await pool.query("DELETE FROM signups WHERE email ILIKE '%@qa.local' OR email ILIKE '%@test.com' OR email ILIKE 'apitest@%' OR email ILIKE '%+qa%@%'");
     _t.at = 0;
     res.json({ ok: true, deleted: r.rowCount });
   } catch (e) { res.status(500).json({ ok: false }); }
